@@ -599,73 +599,83 @@ export default function App() {
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="px-6 pt-12 pb-24 space-y-8"
+      className="pb-24"
     >
-      <div className="text-center space-y-4">
-        <div className="relative inline-block">
-          <div className="w-36 h-36 rounded-full border-4 border-gold-500/30 p-1.5 bg-gradient-to-tr from-gold-500/20 to-transparent shadow-2xl">
-            <img 
-              src="https://i.ibb.co.com/QvCwgpWy/IMG-20260225-130127.webp" 
-              alt="মোঃ নাসিফ ইকবাল" 
-              className="w-full h-full rounded-full object-cover border border-gold-500/10"
-            />
-          </div>
-          <div className="absolute bottom-2 right-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-[#020D0A] flex items-center justify-center shadow-lg">
-            <Star size={14} className="text-white" />
-          </div>
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold">মোঃ নাসিফ ইকবাল</h2>
-          <p className="text-emerald-400 font-medium">App Developer & Tech Enthusiast</p>
-        </div>
+      <div className="sticky top-0 z-30 glass p-6 flex items-center justify-between">
+        <button onClick={() => setActiveTab('tools')} className="p-2 hover:bg-white/10 rounded-xl">
+          <SkipBack size={24} />
+        </button>
+        <h3 className="text-xl font-bold">ডেভেলপার প্রোফাইল</h3>
+        <div className="w-10" />
       </div>
 
-      <GlassCard className="p-6 bg-gradient-to-br from-emerald-900/40 to-emerald-800/20 border-gold-500/20">
-        <p className="text-center italic text-white/80 leading-relaxed">
-          “প্রযুক্তির মাধ্যমে উপকার পৌঁছে দেওয়াই আমার লক্ষ্য। আল্লাহ আমাদের আমল কবুল করুন।”
-        </p>
-        <div className="mt-6 flex justify-center space-x-4">
-          <div className="text-center">
-            <p className="text-xs text-white/40 uppercase font-bold">দেশ</p>
-            <p className="font-bold">বাংলাদেশ</p>
+      <div className="px-6 pt-8 space-y-8">
+        <div className="text-center space-y-4">
+          <div className="relative inline-block">
+            <div className="w-36 h-36 rounded-full border-4 border-gold-500/30 p-1.5 bg-gradient-to-tr from-gold-500/20 to-transparent shadow-2xl">
+              <img 
+                src="https://i.ibb.co.com/QvCwgpWy/IMG-20260225-130127.webp" 
+                alt="মোঃ নাসিফ ইকবাল" 
+                className="w-full h-full rounded-full object-cover border border-gold-500/10"
+              />
+            </div>
+            <div className="absolute bottom-2 right-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-[#020D0A] flex items-center justify-center shadow-lg">
+              <Star size={14} className="text-white" />
+            </div>
           </div>
-          <div className="w-px h-8 bg-white/10" />
-          <div className="text-center">
-            <p className="text-xs text-white/40 uppercase font-bold">ভার্সন</p>
-            <p className="font-bold">১.০.০</p>
+          <div>
+            <h2 className="text-2xl font-bold">মোঃ নাসিফ ইকবাল</h2>
+            <p className="text-emerald-400 font-medium">App Developer & Tech Enthusiast</p>
           </div>
         </div>
-      </GlassCard>
 
-      <div className="grid grid-cols-1 gap-3">
-        <Button variant="outline" className="justify-between">
-          <div className="flex items-center space-x-3">
-            <Mail size={20} className="text-emerald-400" />
-            <span>যোগাযোগ করুন</span>
+        <GlassCard className="p-6 bg-gradient-to-br from-emerald-900/40 to-emerald-800/20 border-gold-500/20">
+          <p className="text-center italic text-white/80 leading-relaxed">
+            “প্রযুক্তির মাধ্যমে উপকার পৌঁছে দেওয়াই আমার লক্ষ্য। আল্লাহ আমাদের আমল কবুল করুন।”
+          </p>
+          <div className="mt-6 flex justify-center space-x-4">
+            <div className="text-center">
+              <p className="text-xs text-white/40 uppercase font-bold">দেশ</p>
+              <p className="font-bold">বাংলাদেশ</p>
+            </div>
+            <div className="w-px h-8 bg-white/10" />
+            <div className="text-center">
+              <p className="text-xs text-white/40 uppercase font-bold">ভার্সন</p>
+              <p className="font-bold">১.০.০</p>
+            </div>
           </div>
-          <ChevronRight size={18} className="text-white/20" />
-        </Button>
-        <Button variant="outline" className="justify-between">
-          <div className="flex items-center space-x-3">
-            <MessageSquare size={20} className="text-emerald-400" />
-            <span>মতামত দিন</span>
-          </div>
-          <ChevronRight size={18} className="text-white/20" />
-        </Button>
-        <Button variant="outline" className="justify-between">
-          <div className="flex items-center space-x-3">
-            <Star size={20} className="text-emerald-400" />
-            <span>অ্যাপ রেট করুন</span>
-          </div>
-          <ChevronRight size={18} className="text-white/20" />
-        </Button>
-        <Button variant="outline" className="justify-between">
-          <div className="flex items-center space-x-3">
-            <Share2 size={20} className="text-emerald-400" />
-            <span>শেয়ার করুন</span>
-          </div>
-          <ChevronRight size={18} className="text-white/20" />
-        </Button>
+        </GlassCard>
+
+        <div className="grid grid-cols-1 gap-3">
+          <Button variant="outline" className="justify-between">
+            <div className="flex items-center space-x-3">
+              <Mail size={20} className="text-emerald-400" />
+              <span>যোগাযোগ করুন</span>
+            </div>
+            <ChevronRight size={18} className="text-white/20" />
+          </Button>
+          <Button variant="outline" className="justify-between">
+            <div className="flex items-center space-x-3">
+              <MessageSquare size={20} className="text-emerald-400" />
+              <span>মতামত দিন</span>
+            </div>
+            <ChevronRight size={18} className="text-white/20" />
+          </Button>
+          <Button variant="outline" className="justify-between">
+            <div className="flex items-center space-x-3">
+              <Star size={20} className="text-emerald-400" />
+              <span>অ্যাপ রেট করুন</span>
+            </div>
+            <ChevronRight size={18} className="text-white/20" />
+          </Button>
+          <Button variant="outline" className="justify-between">
+            <div className="flex items-center space-x-3">
+              <Share2 size={20} className="text-emerald-400" />
+              <span>শেয়ার করুন</span>
+            </div>
+            <ChevronRight size={18} className="text-white/20" />
+          </Button>
+        </div>
       </div>
     </motion.div>
   );
@@ -699,6 +709,15 @@ export default function App() {
             <Calendar size={32} />
           </div>
           <h4 className="font-bold">রমজান ক্যালেন্ডার</h4>
+        </GlassCard>
+        <GlassCard 
+          className="p-6 flex flex-col items-center space-y-4 text-center bg-emerald-900/20 border-gold-500/20 col-span-2"
+          onClick={() => setActiveTab('profile')}
+        >
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+            <Info size={32} />
+          </div>
+          <h4 className="font-bold">ডেভেলপার প্রোফাইল</h4>
         </GlassCard>
       </div>
 
@@ -851,13 +870,9 @@ export default function App() {
                 <Heart size={24} />
                 <span className="text-[10px] font-bold uppercase">দোয়া</span>
               </button>
-              <button onClick={() => setActiveTab('tools')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'tools' ? "text-gold-500 scale-110" : "text-white/40")}>
+              <button onClick={() => setActiveTab('tools')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'tools' || activeTab === 'profile' ? "text-gold-500 scale-110" : "text-white/40")}>
                 <Calculator size={24} />
                 <span className="text-[10px] font-bold uppercase">টুলস</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'profile' ? "text-gold-500 scale-110" : "text-white/40")}>
-                <Info size={24} />
-                <span className="text-[10px] font-bold uppercase">ডেভেলপার</span>
               </button>
             </GlassCard>
           </div>
