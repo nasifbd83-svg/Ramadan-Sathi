@@ -1,0 +1,5 @@
+{
+  "name": "রমজান সাথী (Ramadan Sathi)",
+  "description": "Premium Islamic Ramadan companion app with prayer times, Quran, Zakat calculator, and worship tracker.",
+  "requestFramePermissions": ["geolocation", "notifications"]
+}

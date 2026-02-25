@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065f46;
+  --color-emerald-900: #064e3b;
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
+  --color-gold-600: #d97706;
+}
+
+@layer base {
+  body {
+    @apply bg-[#020D0A] text-white overflow-x-hidden;
+    background-image: linear-gradient(rgba(2, 13, 10, 0.85), rgba(2, 13, 10, 0.95)), url("https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop");
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+  }
+}
+
+.glass {
+  @apply bg-white/10 backdrop-blur-lg border border-white/20;
+}
+
+.glass-dark {
+  @apply bg-black/40 backdrop-blur-lg border border-white/10;
+}
+
+.gold-glow {
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+}
+
+.emerald-glow {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.font-arabic {
+  font-family: 'Amiri', serif;
+}
+
+.font-bangla {
+  font-family: 'Hind Siliguri', sans-serif;
+}
+
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
