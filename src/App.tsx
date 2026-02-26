@@ -91,6 +91,7 @@ export default function App() {
   const [zakatResult, setZakatResult] = useState<number | null>(null);
   const [showZakatCalc, setShowZakatCalc] = useState(false);
   const [showRamadanCalendar, setShowRamadanCalendar] = useState(false);
+  const [showDownloadGuide, setShowDownloadGuide] = useState(false);
   const [countdown, setCountdown] = useState('০০:০০:০০');
   const [nextPrayer, setNextPrayer] = useState<{name: string, time: Date} | null>(null);
   const [tasbeehTarget, setTasbeehTarget] = useState<number>(33);
@@ -856,6 +857,36 @@ export default function App() {
         </GlassCard>
       </div>
 
+      {/* App Download Section */}
+      <div className="pt-8 space-y-6 flex flex-col items-center">
+        <div className="text-center space-y-2">
+          <h3 className="text-xl font-bold font-bangla">অ্যাপ ডাউনলোড</h3>
+          <div className="h-1 w-12 bg-gold-500/30 mx-auto rounded-full" />
+        </div>
+
+        <div className="flex flex-col items-center space-y-4 w-full max-w-xs">
+          <button 
+            onClick={() => {
+              setShowDownloadGuide(true);
+              window.open('https://drive.google.com/uc?export=download&id=14OwJ2YjXl8Btr5Cx_Weo4ebUlYQ3TyQe', '_blank');
+              setTimeout(() => setShowDownloadGuide(false), 8000);
+            }}
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-900 border border-gold-500/30 text-white font-bold shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-300 relative overflow-hidden group"
+          >
+            <div className="absolute inset-0 bg-gold-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <span className="relative z-10 text-lg">📥 অ্যাপ ডাউনলোড করুন</span>
+          </button>
+          
+          <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Android APK - Direct Download</p>
+          
+          <div className="flex items-center space-x-4 text-[10px] text-white/40 font-bold">
+            <span className="flex items-center"><span className="text-emerald-500 mr-1">✔</span> Safe Download</span>
+            <span className="flex items-center"><span className="text-emerald-500 mr-1">✔</span> Free App</span>
+            <span className="flex items-center"><span className="text-emerald-500 mr-1">✔</span> No Ads</span>
+          </div>
+        </div>
+      </div>
+
       {/* Zakat Calculator Section */}
       <AnimatePresence>
         {showZakatCalc && (
@@ -965,6 +996,72 @@ export default function App() {
               </div>
               <Button variant="gold" className="w-full" onClick={() => setZakatResult(null)}>ঠিক আছে</Button>
             </GlassCard>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Download Guide Modal */}
+      <AnimatePresence>
+        {showDownloadGuide && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md p-6"
+            onClick={() => setShowDownloadGuide(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="w-full max-w-sm glass bg-emerald-950/90 border border-gold-500/30 rounded-[2.5rem] p-8 space-y-6 shadow-2xl relative overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="absolute top-4 right-4">
+                <button 
+                  onClick={() => setShowDownloadGuide(false)}
+                  className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-colors"
+                >
+                  <RefreshCw size={20} className="rotate-45" />
+                </button>
+              </div>
+
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-gold-500/20 rounded-2xl flex items-center justify-center text-gold-500 mx-auto mb-4">
+                  <BookOpen size={32} />
+                </div>
+                <h3 className="text-2xl font-bold text-white font-bangla">অ্যাপ ইন্সটল করার নিয়ম</h3>
+                <div className="h-0.5 w-12 bg-gold-500/30 mx-auto" />
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  "Download complete হলে ফাইল ওপেন করুন",
+                  "Unknown Sources allow করুন (প্রয়োজনে)",
+                  "Install বাটনে চাপ দিন",
+                  "App ওপেন করুন"
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start space-x-4 group">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm shrink-0 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                      {toBengaliNumber((i + 1).toString())}
+                    </div>
+                    <p className="text-white/80 font-medium pt-1">{step}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-4">
+                <Button 
+                  variant="gold" 
+                  className="w-full py-4 rounded-2xl shadow-lg shadow-gold-500/20"
+                  onClick={() => setShowDownloadGuide(false)}
+                >
+                  বুঝেছি
+                </Button>
+              </div>
+              
+              <p className="text-[10px] text-center text-white/20 font-bold uppercase tracking-widest">Auto-closing in 8 seconds</p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
