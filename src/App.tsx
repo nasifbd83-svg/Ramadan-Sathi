@@ -647,28 +647,49 @@ export default function App() {
         </GlassCard>
 
         <div className="grid grid-cols-1 gap-3">
-          <Button variant="outline" className="justify-between">
+          <Button 
+            variant="outline" 
+            className="justify-between"
+            onClick={() => window.open('https://www.facebook.com/Nasif20k?mibextid=ZbWKwL', '_blank')}
+          >
             <div className="flex items-center space-x-3">
               <Mail size={20} className="text-emerald-400" />
               <span>যোগাযোগ করুন</span>
             </div>
             <ChevronRight size={18} className="text-white/20" />
           </Button>
-          <Button variant="outline" className="justify-between">
+          <Button 
+            variant="outline" 
+            className="justify-between"
+            onClick={() => window.open('https://m.me/Nasif20k', '_blank')}
+          >
             <div className="flex items-center space-x-3">
               <MessageSquare size={20} className="text-emerald-400" />
               <span>মতামত দিন</span>
             </div>
             <ChevronRight size={18} className="text-white/20" />
           </Button>
-          <Button variant="outline" className="justify-between">
-            <div className="flex items-center space-x-3">
-              <Star size={20} className="text-emerald-400" />
-              <span>অ্যাপ রেট করুন</span>
-            </div>
-            <ChevronRight size={18} className="text-white/20" />
-          </Button>
-          <Button variant="outline" className="justify-between">
+          <Button 
+            variant="outline" 
+            className="justify-between"
+            onClick={async () => {
+              const shareData = {
+                title: 'রমজান সাথী',
+                text: 'রমজান সাথী - আপনার ইবাদতের ডিজিটাল সঙ্গী।',
+                url: 'https://ramadansathi.netlify.app',
+              };
+              try {
+                if (navigator.share) {
+                  await navigator.share(shareData);
+                } else {
+                  await navigator.clipboard.writeText(shareData.url);
+                  alert('লিঙ্কটি কপি করা হয়েছে!');
+                }
+              } catch (err) {
+                console.error('Error sharing:', err);
+              }
+            }}
+          >
             <div className="flex items-center space-x-3">
               <Share2 size={20} className="text-emerald-400" />
               <span>শেয়ার করুন</span>
