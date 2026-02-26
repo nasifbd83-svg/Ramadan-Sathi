@@ -10,7 +10,8 @@ import {
   ChevronRight, RefreshCw, MapPin, Timer, Heart, 
   Calendar, Calculator, Info, Play, Pause, SkipBack, 
   SkipForward, Bookmark, Share2, Mail, Star, MessageSquare,
-  Bell, ListChecks, FileText, Search, Volume2, VolumeX
+  Bell, ListChecks, FileText, Search, Volume2, VolumeX,
+  RotateCcw, Target, Music
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -21,7 +22,11 @@ import { getBengaliDate, getHijriDate, toBengaliNumber } from './utils/calendar'
 import { fetchPrayerTimes, type PrayerTimes } from './services/prayerService';
 import { fetchSurahs, fetchSurahDetail, type Surah, type Ayah } from './services/quranService';
 import { BD_DISTRICTS, getDistrictFromCoords } from './services/locationService';
-import { ESSENTIAL_DUAS, ESSENTIAL_SURAHS, DAILY_HADITH, type Dua } from './constants/content';
+import { 
+  ESSENTIAL_DUAS, ESSENTIAL_SURAHS, DAILY_HADITH, 
+  DAILY_ESSENTIAL_DUAS, KALIMAS, IMPORTANT_AMALS, ALLAH_NAMES,
+  type Dua, type AllahName 
+} from './constants/content';
 
 // --- Utilities ---
 function cn(...inputs: ClassValue[]) {
@@ -70,7 +75,7 @@ const Button = ({ children, className, onClick, variant = 'primary' }: { childre
 
 // --- Main App ---
 
-type Screen = 'home' | 'quran' | 'duas' | 'tools' | 'tracker' | 'profile' | 'surah-detail';
+type Screen = 'home' | 'quran' | 'duas' | 'tools' | 'tracker' | 'profile' | 'surah-detail' | 'tasbeeh' | 'allah-names';
 
 export default function App() {
   const [isSplash, setIsSplash] = useState(true);
@@ -88,6 +93,8 @@ export default function App() {
   const [showRamadanCalendar, setShowRamadanCalendar] = useState(false);
   const [countdown, setCountdown] = useState('০০:০০:০০');
   const [nextPrayer, setNextPrayer] = useState<{name: string, time: Date} | null>(null);
+  const [tasbeehTarget, setTasbeehTarget] = useState<number>(33);
+  const [activeDuaCategory, setActiveDuaCategory] = useState<string | null>(null);
 
   const calculateZakat = () => {
     const total = (parseFloat(zakatData.gold) || 0) + (parseFloat(zakatData.cash) || 0) + (parseFloat(zakatData.business) || 0);
@@ -146,7 +153,20 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetchSurahs().then(setSurahs);
+    fetchSurahs()
+      .then(setSurahs)
+      .catch(err => {
+        console.error('Initial surah fetch failed, using fallback:', err);
+        // Fallback with some common surahs if API fails
+        setSurahs([
+          { number: 1, name: "سُورَةُ ٱلْفَاتِحَةِ", englishName: "Al-Faatiha", englishNameTranslation: "The Opening", numberOfAyahs: 7, revelationType: "Meccan" },
+          { number: 36, name: "سُورَةُ يسٓ", englishName: "Ya-Seen", englishNameTranslation: "Ya Seen", numberOfAyahs: 83, revelationType: "Meccan" },
+          { number: 67, name: "سُورَةُ ٱلْمُلْكِ", englishName: "Al-Mulk", englishNameTranslation: "The Sovereignty", numberOfAyahs: 30, revelationType: "Meccan" },
+          { number: 112, name: "سُورَةُ ٱلْإِخْلَاصِ", englishName: "Al-Ikhlaas", englishNameTranslation: "Sincerity", numberOfAyahs: 4, revelationType: "Meccan" },
+          { number: 113, name: "سُورَةُ ٱلْفَلَقِ", englishName: "Al-Falaq", englishNameTranslation: "The Daybreak", numberOfAyahs: 5, revelationType: "Meccan" },
+          { number: 114, name: "سُورَةُ ٱلنَّاسِ", englishName: "An-Naas", englishNameTranslation: "Mankind", numberOfAyahs: 6, revelationType: "Meccan" }
+        ]);
+      });
     refreshPrayerTimes();
   }, [district]);
 
@@ -158,7 +178,18 @@ export default function App() {
       const res = await fetchPrayerTimes(23.8103, 90.4125);
       setPrayerTimes(res);
     } catch (e) {
-      console.error(e);
+      console.error('Prayer fetch failed, using mock fallback:', e);
+      // Mock fallback for Dhaka
+      setPrayerTimes({
+        Fajr: '05:12',
+        Sunrise: '06:28',
+        Dhuhr: '12:10',
+        Asr: '15:30',
+        Maghrib: '18:02',
+        Isha: '19:15',
+        Imsak: '05:02',
+        Midnight: '00:10'
+      });
     } finally {
       setLoading(false);
     }
@@ -174,10 +205,13 @@ export default function App() {
     }
   };
 
-  // --- Audio Logic ---
+  // --- Quran Audio Logic ---
 
   const playSurah = (detail: { ayahs: Ayah[] }) => {
-    if (audioPlayer) audioPlayer.stop();
+    if (audioPlayer) {
+      audioPlayer.stop();
+      audioPlayer.unload();
+    }
     
     const playNext = (index: number) => {
       if (index >= detail.ayahs.length) {
@@ -190,11 +224,13 @@ export default function App() {
       const sound = new Howl({
         src: [detail.ayahs[index].audio],
         html5: true,
-        onend: () => playNext(index + 1)
+        onend: () => playNext(index + 1),
+        onplay: () => setIsPlaying(true),
+        onpause: () => setIsPlaying(false),
+        onstop: () => setIsPlaying(false)
       });
       setAudioPlayer(sound);
       sound.play();
-      setIsPlaying(true);
     };
 
     playNext(0);
@@ -204,7 +240,8 @@ export default function App() {
     if (audioPlayer) {
       if (isPlaying) audioPlayer.pause();
       else audioPlayer.play();
-      setIsPlaying(!isPlaying);
+    } else if (surahDetail) {
+      playSurah(surahDetail);
     }
   };
 
@@ -368,107 +405,165 @@ export default function App() {
     );
   };
 
-  const renderDuas = () => (
-    <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="px-6 pt-12 pb-24 space-y-6"
-    >
-      <div className="space-y-1">
-        <h2 className="text-3xl font-bold font-bangla">সূরা ও দোয়া</h2>
-        <p className="text-emerald-400 font-medium">প্রয়োজনীয় দোয়া এবং সূরাসমূহ</p>
-      </div>
+  const renderDuas = () => {
+    const categories = [
+      { id: 'daily', title: 'প্রয়োজনীয় দোয়া', icon: <Heart size={24} />, color: 'emerald', data: DAILY_ESSENTIAL_DUAS },
+      { id: 'kalima', title: 'কালিমা সমূহ', icon: <Fingerprint size={24} />, color: 'gold', data: KALIMAS },
+      { id: 'allah', title: 'আল্লাহর নাম', icon: <Star size={24} />, color: 'amber', action: () => setActiveTab('allah-names') },
+      { id: 'amal', title: 'গুরুত্বপূর্ণ আমল', icon: <ListChecks size={24} />, color: 'emerald', data: IMPORTANT_AMALS },
+      { id: 'others', title: 'অন্যান্য', icon: <BookOpen size={24} />, color: 'amber', data: [...ESSENTIAL_DUAS, ...ESSENTIAL_SURAHS] },
+    ];
 
-      <div className="space-y-4">
-        <h3 className="text-sm font-bold text-white/40 uppercase tracking-widest">প্রয়োজনীয় দোয়া</h3>
-        {ESSENTIAL_DUAS.map(dua => (
-          <button 
-            key={dua.id}
-            onClick={() => setSelectedDua(dua)}
-            className="w-full flex items-center justify-between p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-left"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
-                <BookOpen size={20} />
-              </div>
-              <span className="text-white font-semibold">{dua.title}</span>
-            </div>
-            <ChevronRight className="text-white/20" size={20} />
-          </button>
-        ))}
-
-        <h3 className="text-sm font-bold text-white/40 uppercase tracking-widest mt-8">প্রয়োজনীয় সূরা</h3>
-        {ESSENTIAL_SURAHS.map(surah => (
-          <button 
-            key={surah.id}
-            onClick={() => setSelectedDua(surah)}
-            className="w-full flex items-center justify-between p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-left"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center text-amber-400">
-                <BookOpen size={20} />
-              </div>
-              <span className="text-white font-semibold">{surah.title}</span>
-            </div>
-            <ChevronRight className="text-white/20" size={20} />
-          </button>
-        ))}
-      </div>
-
-      {/* Dua Detail Modal */}
-      <AnimatePresence>
-        {selectedDua && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setSelectedDua(null)}
-          >
-            <motion.div 
-              initial={{ y: 100 }}
-              animate={{ y: 0 }}
-              exit={{ y: 100 }}
-              className="w-full max-w-lg bg-emerald-950 border border-white/10 rounded-t-[40px] p-8 space-y-8 overflow-y-auto max-h-[90vh]"
-              onClick={e => e.stopPropagation()}
+    if (activeDuaCategory) {
+      const category = categories.find(c => c.id === activeDuaCategory);
+      return (
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="px-6 pt-12 pb-24 space-y-6"
+        >
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={() => setActiveDuaCategory(null)}
+              className="p-2 glass rounded-xl text-white/60"
             >
-              <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto" />
-              
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold text-white">{selectedDua.title}</h2>
-                <div className="h-px w-24 bg-emerald-500/30 mx-auto" />
-              </div>
+              <SkipBack size={20} />
+            </button>
+            <h2 className="text-2xl font-bold font-bangla">{category?.title}</h2>
+          </div>
 
-              <div className="space-y-6">
-                <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                  <p className="text-3xl text-center leading-loose text-white font-arabic dir-rtl" style={{ fontFamily: 'Amiri, serif' }}>
-                    {selectedDua.arabic}
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold mb-2">উচ্চারণ</p>
-                    <p className="text-white/80 leading-relaxed italic">{selectedDua.transliteration}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-amber-400 font-bold mb-2">অর্থ</p>
-                    <p className="text-white/90 leading-relaxed font-medium">{selectedDua.meaning}</p>
-                  </div>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => setSelectedDua(null)}
-                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all"
+          <div className="space-y-3">
+            {category?.data?.map((dua: any) => (
+              <div 
+                key={dua.id}
+                className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all cursor-pointer"
+                onClick={() => setSelectedDua(dua)}
               >
-                বন্ধ করুন
-              </button>
-            </motion.div>
+                <div className="flex items-center space-x-4">
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center",
+                    category.color === 'emerald' ? "bg-emerald-500/20 text-emerald-400" : 
+                    category.color === 'gold' ? "bg-gold-500/20 text-gold-500" : "bg-amber-500/20 text-amber-400"
+                  )}>
+                    {category.icon}
+                  </div>
+                  <span className="text-white font-semibold">{dua.title}</span>
+                </div>
+                <ChevronRight className="text-white/20" size={20} />
+              </div>
+            ))}
+          </div>
+
+          {/* Reuse the Modal from below */}
+          {renderDuaModal()}
+        </motion.div>
+      );
+    }
+
+    return (
+      <motion.div 
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="px-6 pt-12 pb-24 space-y-8"
+      >
+        <div className="space-y-1">
+          <h2 className="text-3xl font-bold font-bangla">সুরা ও দোয়া</h2>
+          <p className="text-emerald-400 font-medium">প্রয়োজনীয় দোয়া এবং সূরাসমূহ</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          {categories.map(cat => (
+            <button 
+              key={cat.id}
+              onClick={() => cat.action ? cat.action() : setActiveDuaCategory(cat.id)}
+              className={cn(
+                "w-full flex items-center justify-between p-6 rounded-[2rem] transition-all active:scale-95 group relative overflow-hidden",
+                cat.id === 'allah' 
+                  ? "bg-gradient-to-r from-gold-600/20 to-amber-600/10 border border-gold-500/30 gold-glow" 
+                  : "bg-white/5 border border-white/10 hover:bg-white/10"
+              )}
+            >
+              <div className="flex items-center space-x-5">
+                <div className={cn(
+                  "w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110",
+                  cat.color === 'emerald' ? "bg-emerald-500/20 text-emerald-400" : 
+                  cat.color === 'gold' ? "bg-gold-500 text-emerald-950" : "bg-amber-500/20 text-amber-400"
+                )}>
+                  {cat.icon}
+                </div>
+                <div className="text-left">
+                  <span className="text-white text-lg font-bold block">{cat.title}</span>
+                  <span className="text-white/40 text-xs font-medium uppercase tracking-wider">
+                    {cat.id === 'daily' ? 'Daily Essentials' : 
+                     cat.id === 'kalima' ? 'Five Kalimas' : 
+                     cat.id === 'allah' ? '99 Names' : 
+                     cat.id === 'amal' ? 'Important Deeds' : 'Others'}
+                  </span>
+                </div>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/20 group-hover:text-white/60 transition-colors">
+                <ChevronRight size={20} />
+              </div>
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    );
+  };
+
+  const renderDuaModal = () => (
+    <AnimatePresence>
+      {selectedDua && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={() => setSelectedDua(null)}
+        >
+          <motion.div 
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="w-full max-w-lg bg-emerald-950 border border-white/10 rounded-t-[40px] p-8 space-y-8 overflow-y-auto max-h-[90vh]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto" />
+            
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold text-white">{selectedDua.title}</h2>
+              <div className="h-px w-24 bg-emerald-500/30 mx-auto" />
+            </div>
+
+            <div className="space-y-6">
+              <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+                <p className="text-3xl text-center leading-loose text-white font-arabic dir-rtl" style={{ fontFamily: 'Amiri, serif' }}>
+                  {selectedDua.arabic}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold mb-2">উচ্চারণ</p>
+                  <p className="text-white/80 leading-relaxed italic">{selectedDua.transliteration}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-amber-400 font-bold mb-2">অর্থ</p>
+                  <p className="text-white/90 leading-relaxed font-medium">{selectedDua.meaning}</p>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setSelectedDua(null)}
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all"
+            >
+              বন্ধ করুন
+            </button>
           </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 
   const renderQuran = () => (
@@ -499,10 +594,16 @@ export default function App() {
             onClick={async () => {
               setSelectedSurah(s);
               setLoading(true);
-              const detail = await fetchSurahDetail(s.number);
-              setSurahDetail(detail);
-              setLoading(false);
-              setActiveTab('surah-detail');
+              try {
+                const detail = await fetchSurahDetail(s.number);
+                setSurahDetail(detail);
+                setActiveTab('surah-detail');
+              } catch (err) {
+                console.error('Failed to load surah detail:', err);
+                alert('সূরা লোড করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
+              } finally {
+                setLoading(false);
+              }
             }}
           >
             <div className="flex items-center space-x-4">
@@ -550,7 +651,7 @@ export default function App() {
               key={ayah.number} 
               className={cn(
                 "space-y-6 p-6 rounded-3xl transition-all duration-500",
-                currentAyahIndex === idx ? "bg-emerald-500/10 border border-emerald-500/30 gold-glow" : "border border-transparent"
+                currentAyahIndex === idx && isPlaying ? "bg-emerald-500/10 border border-emerald-500/30 gold-glow" : "border border-transparent"
               )}
             >
               <div className="flex justify-end">
@@ -574,18 +675,31 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <button 
-                  onClick={() => playSurah(surahDetail)}
-                  className="w-12 h-12 rounded-full bg-gold-500 flex items-center justify-center text-emerald-950"
+                  onClick={toggleAudio}
+                  className="w-12 h-12 rounded-full bg-gold-500 flex items-center justify-center text-emerald-950 shadow-lg shadow-gold-500/20 active:scale-90 transition-all"
                 >
-                  {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+                  {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
                 </button>
                 <div>
-                  <p className="text-xs font-bold text-emerald-400">অডিও প্লেয়ার</p>
-                  <p className="text-sm font-bold">আয়াত {toBengaliNumber(currentAyahIndex + 1)}</p>
+                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Al-Quran Player</p>
+                  <p className="text-sm font-bold text-white">আয়াত {toBengaliNumber((currentAyahIndex + 1).toString())}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-4">
-                <Volume2 size={20} className="text-white/40" />
+                <button 
+                  onClick={() => {
+                    if (audioPlayer) {
+                      audioPlayer.stop();
+                      audioPlayer.unload();
+                      setAudioPlayer(null);
+                      setIsPlaying(false);
+                      setCurrentAyahIndex(0);
+                    }
+                  }}
+                  className="p-2 hover:bg-white/10 rounded-xl text-white/40"
+                >
+                  <RefreshCw size={20} />
+                </button>
                 <Share2 size={20} className="text-white/40" />
               </div>
             </div>
@@ -857,6 +971,112 @@ export default function App() {
     </motion.div>
   );
 
+  const renderAllahNames = () => (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="pb-24"
+    >
+      <div className="sticky top-0 z-30 glass p-6 flex items-center justify-between">
+        <button onClick={() => setActiveTab('duas')} className="p-2 hover:bg-white/10 rounded-xl">
+          <SkipBack size={24} />
+        </button>
+        <h3 className="text-xl font-bold">আল্লাহর ৯৯ নাম</h3>
+        <div className="w-10" />
+      </div>
+
+      <div className="p-6 grid grid-cols-2 gap-4">
+        {ALLAH_NAMES.map(name => (
+          <GlassCard key={name.id} className="p-6 text-center space-y-3 bg-emerald-900/20 border-gold-500/10">
+            <p className="text-3xl font-arabic text-gold-500" style={{ fontFamily: 'Amiri, serif' }}>{name.arabic}</p>
+            <div>
+              <p className="font-bold text-white">{name.transliteration}</p>
+              <p className="text-xs text-white/40">{name.meaning}</p>
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+    </motion.div>
+  );
+
+  const renderTasbeeh = () => (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="px-6 pt-12 pb-24 flex flex-col items-center justify-center min-h-[80vh] space-y-12"
+    >
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold font-bangla">তাসবিহ কাউন্টার</h2>
+        <p className="text-emerald-400 font-medium tracking-widest uppercase text-xs">Digital Dhikr Companion</p>
+      </div>
+
+      <div className="relative">
+        <div className={cn(
+          "w-64 h-64 rounded-full border-8 border-emerald-500/20 flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden active:scale-95 cursor-pointer",
+          tasbeehCount >= tasbeehTarget ? "border-gold-500/50 gold-glow" : "emerald-glow"
+        )}
+        onClick={() => {
+          const newCount = tasbeehCount + 1;
+          setTasbeehCount(newCount);
+          localStorage.setItem('tasbeehCount', newCount.toString());
+          if (navigator.vibrate) navigator.vibrate(50);
+        }}>
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent" />
+          <p className="text-xs font-bold text-white/40 uppercase tracking-[0.3em] mb-2">Count</p>
+          <motion.p 
+            key={tasbeehCount}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-7xl font-black text-white tracking-tighter"
+          >
+            {toBengaliNumber(tasbeehCount.toString())}
+          </motion.p>
+          <p className="mt-4 text-[10px] font-bold text-gold-500 uppercase tracking-widest">Target: {toBengaliNumber(tasbeehTarget.toString())}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-4">
+        {[33, 99, 1000].map(t => (
+          <button 
+            key={t}
+            onClick={() => setTasbeehTarget(t)}
+            className={cn(
+              "px-4 py-2 rounded-xl text-xs font-bold transition-all",
+              tasbeehTarget === t ? "bg-gold-500 text-emerald-950" : "glass text-white/60"
+            )}
+          >
+            {toBengaliNumber(t.toString())}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex space-x-4">
+        <Button 
+          variant="outline" 
+          className="rounded-full w-14 h-14 p-0"
+          onClick={() => {
+            setTasbeehCount(0);
+            localStorage.setItem('tasbeehCount', '0');
+          }}
+        >
+          <RotateCcw size={20} />
+        </Button>
+        <Button 
+          variant="gold" 
+          className="px-12"
+          onClick={() => {
+            const newCount = tasbeehCount + 1;
+            setTasbeehCount(newCount);
+            localStorage.setItem('tasbeehCount', newCount.toString());
+            if (navigator.vibrate) navigator.vibrate(50);
+          }}
+        >
+          সুবহানাল্লাহ
+        </Button>
+      </div>
+    </motion.div>
+  );
+
   return (
     <div className="min-h-screen bg-[#020D0A] text-white font-bangla selection:bg-emerald-500/30 overflow-x-hidden">
       <AnimatePresence>
@@ -871,6 +1091,8 @@ export default function App() {
           {activeTab === 'surah-detail' && renderSurahDetail()}
           {activeTab === 'tools' && renderTools()}
           {activeTab === 'profile' && renderProfile()}
+          {activeTab === 'tasbeeh' && renderTasbeeh()}
+          {activeTab === 'allah-names' && renderAllahNames()}
         </AnimatePresence>
       </main>
 
@@ -890,6 +1112,10 @@ export default function App() {
               <button onClick={() => setActiveTab('duas')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'duas' ? "text-gold-500 scale-110" : "text-white/40")}>
                 <Heart size={24} />
                 <span className="text-[10px] font-bold uppercase">দোয়া</span>
+              </button>
+              <button onClick={() => setActiveTab('tasbeeh')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'tasbeeh' ? "text-gold-500 scale-110" : "text-white/40")}>
+                <Fingerprint size={24} />
+                <span className="text-[10px] font-bold uppercase">তাসবিহ</span>
               </button>
               <button onClick={() => setActiveTab('tools')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'tools' || activeTab === 'profile' ? "text-gold-500 scale-110" : "text-white/40")}>
                 <Calculator size={24} />

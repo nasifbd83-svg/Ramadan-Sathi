@@ -29,24 +29,45 @@ export interface Ayah {
 }
 
 export async function fetchSurahs(): Promise<Surah[]> {
-  const response = await fetch('https://api.alquran.cloud/v1/surah');
-  const data = await response.json();
-  return data.data;
+  try {
+    const response = await fetch('https://api.alquran.cloud/v1/surah');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error('Error fetching surahs:', error);
+    throw error;
+  }
 }
 
 export async function fetchSurahDetail(number: number): Promise<{ ayahs: Ayah[], surah: Surah }> {
-  // Fetch Arabic text
-  const arabicRes = await fetch(`https://api.alquran.cloud/v1/surah/${number}/ar.alafasy`);
-  const arabicData = await arabicRes.json();
-  
-  // Fetch Bangla translation
-  const banglaRes = await fetch(`https://api.alquran.cloud/v1/surah/${number}/bn.bengali`);
-  const banglaData = await banglaRes.json();
+  try {
+    // Fetch both Arabic and Bangla editions in a single request
+    const response = await fetch(`https://api.alquran.cloud/v1/surah/${number}/editions/ar.alafasy,bn.bengali`);
+    
+    if (!response.ok) {
+      throw new Error(`Quran API failed! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.code !== 200 || !data.data || data.data.length < 2) {
+      throw new Error('Invalid response from Quran API');
+    }
 
-  const ayahs = arabicData.data.ayahs.map((ayah: any, index: number) => ({
-    ...ayah,
-    translation: banglaData.data.ayahs[index].text,
-  }));
+    const arabicEdition = data.data[0];
+    const banglaEdition = data.data[1];
 
-  return { ayahs, surah: arabicData.data };
+    const ayahs = arabicEdition.ayahs.map((ayah: any, index: number) => ({
+      ...ayah,
+      translation: banglaEdition.ayahs[index].text,
+    }));
+
+    return { ayahs, surah: arabicEdition };
+  } catch (error) {
+    console.error(`Error fetching surah ${number} detail:`, error);
+    throw error;
+  }
 }
