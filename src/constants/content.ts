@@ -19,6 +19,46 @@ export interface AllahName {
   meaning: string;
 }
 
+export interface RamadanDay {
+  roza: number;
+  date: string;
+  sehri: string;
+  iftar: string;
+}
+
+export const RAMADAN_TIMETABLE: RamadanDay[] = [
+  {roza:1,  date:"19 Feb 2026", sehri:"05:19 AM", iftar:"06:04 PM"},
+  {roza:2,  date:"20 Feb 2026", sehri:"05:19 AM", iftar:"06:04 PM"},
+  {roza:3,  date:"21 Feb 2026", sehri:"05:18 AM", iftar:"06:05 PM"},
+  {roza:4,  date:"22 Feb 2026", sehri:"05:17 AM", iftar:"06:05 PM"},
+  {roza:5,  date:"23 Feb 2026", sehri:"05:16 AM", iftar:"06:06 PM"},
+  {roza:6,  date:"24 Feb 2026", sehri:"05:16 AM", iftar:"06:06 PM"},
+  {roza:7,  date:"25 Feb 2026", sehri:"05:15 AM", iftar:"06:07 PM"},
+  {roza:8,  date:"26 Feb 2026", sehri:"05:14 AM", iftar:"06:07 PM"},
+  {roza:9,  date:"27 Feb 2026", sehri:"05:13 AM", iftar:"06:08 PM"},
+  {roza:10, date:"28 Feb 2026", sehri:"05:13 AM", iftar:"06:08 PM"},
+  {roza:11, date:"01 Mar 2026", sehri:"05:12 AM", iftar:"06:09 PM"},
+  {roza:12, date:"02 Mar 2026", sehri:"05:11 AM", iftar:"06:09 PM"},
+  {roza:13, date:"03 Mar 2026", sehri:"05:10 AM", iftar:"06:10 PM"},
+  {roza:14, date:"04 Mar 2026", sehri:"05:09 AM", iftar:"06:10 PM"},
+  {roza:15, date:"05 Mar 2026", sehri:"05:08 AM", iftar:"06:11 PM"},
+  {roza:16, date:"06 Mar 2026", sehri:"05:07 AM", iftar:"06:11 PM"},
+  {roza:17, date:"07 Mar 2026", sehri:"05:06 AM", iftar:"06:12 PM"},
+  {roza:18, date:"08 Mar 2026", sehri:"05:05 AM", iftar:"06:12 PM"},
+  {roza:19, date:"09 Mar 2026", sehri:"05:04 AM", iftar:"06:13 PM"},
+  {roza:20, date:"10 Mar 2026", sehri:"05:04 AM", iftar:"06:13 PM"},
+  {roza:21, date:"11 Mar 2026", sehri:"05:03 AM", iftar:"06:14 PM"},
+  {roza:22, date:"12 Mar 2026", sehri:"05:02 AM", iftar:"06:14 PM"},
+  {roza:23, date:"13 Mar 2026", sehri:"05:01 AM", iftar:"06:15 PM"},
+  {roza:24, date:"14 Mar 2026", sehri:"05:00 AM", iftar:"06:15 PM"},
+  {roza:25, date:"15 Mar 2026", sehri:"04:59 AM", iftar:"06:16 PM"},
+  {roza:26, date:"16 Mar 2026", sehri:"04:58 AM", iftar:"06:16 PM"},
+  {roza:27, date:"17 Mar 2026", sehri:"04:57 AM", iftar:"06:16 PM"},
+  {roza:28, date:"18 Mar 2026", sehri:"04:55 AM", iftar:"06:17 PM"},
+  {roza:29, date:"19 Mar 2026", sehri:"04:54 AM", iftar:"06:17 PM"},
+  {roza:30, date:"20 Mar 2026", sehri:"04:53 AM", iftar:"06:18 PM"}
+];
+
 export const ESSENTIAL_DUAS: Dua[] = [
   {
     id: '1',

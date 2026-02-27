@@ -25,7 +25,7 @@ import { BD_DISTRICTS, getDistrictFromCoords } from './services/locationService'
 import { 
   ESSENTIAL_DUAS, ESSENTIAL_SURAHS, DAILY_HADITH, 
   DAILY_ESSENTIAL_DUAS, KALIMAS, IMPORTANT_AMALS, ALLAH_NAMES,
-  type Dua, type AllahName 
+  RAMADAN_TIMETABLE, type Dua, type AllahName, type RamadanDay 
 } from './constants/content';
 
 // --- Utilities ---
@@ -93,6 +93,8 @@ export default function App() {
   const [showRamadanCalendar, setShowRamadanCalendar] = useState(false);
   const [showDownloadGuide, setShowDownloadGuide] = useState(false);
   const [countdown, setCountdown] = useState('০০:০০:০০');
+  const [countdownLabel, setCountdownLabel] = useState('সেহরি শেষ হতে বাকি');
+  const [currentRoza, setCurrentRoza] = useState<RamadanDay | null>(null);
   const [nextPrayer, setNextPrayer] = useState<{name: string, time: Date} | null>(null);
   const [tasbeehTarget, setTasbeehTarget] = useState<number>(33);
   const [activeDuaCategory, setActiveDuaCategory] = useState<string | null>(null);
@@ -103,41 +105,68 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!prayerTimes) return;
-    
-    const getNextPrayer = (times: PrayerTimes) => {
+    const interval = setInterval(() => {
       const now = new Date();
-      const prayerNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+      const todayStr = format(now, 'dd MMM yyyy');
+      const todayRoza = RAMADAN_TIMETABLE.find(d => d.date === todayStr);
       
-      for (const name of prayerNames) {
-        const [hours, minutes] = (times as any)[name].split(':');
-        const prayerTime = new Date();
-        prayerTime.setHours(parseInt(hours), parseInt(minutes), 0);
+      if (!todayRoza) {
+        // Check if Ramadan has started or ended
+        const firstDay = new Date(RAMADAN_TIMETABLE[0].date);
+        const lastDay = new Date(RAMADAN_TIMETABLE[RAMADAN_TIMETABLE.length - 1].date);
         
-        if (prayerTime > now) {
-          return { name, time: prayerTime };
+        if (now < firstDay) {
+          setCountdownLabel('রমজান শুরু হতে বাকি');
+          const diff = differenceInSeconds(firstDay, now);
+          updateCountdown(diff);
+        } else if (now > lastDay) {
+          setCountdownLabel('রমজান সমাপ্ত হয়েছে 🌙');
+          setCountdown('০০:০০:০০');
+        }
+        setCurrentRoza(null);
+        return;
+      }
+
+      setCurrentRoza(todayRoza);
+      
+      const sehriTime = new Date(`${todayRoza.date} ${todayRoza.sehri}`);
+      const iftarTime = new Date(`${todayRoza.date} ${todayRoza.iftar}`);
+      
+      if (now < sehriTime) {
+        setCountdownLabel('সেহরি শেষ হতে বাকি');
+        const diff = differenceInSeconds(sehriTime, now);
+        updateCountdown(diff);
+      } else if (now < iftarTime) {
+        setCountdownLabel('ইফতার পর্যন্ত বাকি');
+        const diff = differenceInSeconds(iftarTime, now);
+        updateCountdown(diff);
+      } else {
+        // After Iftar, show tomorrow's Sehri
+        const tomorrow = addDays(now, 1);
+        const tomorrowStr = format(tomorrow, 'dd MMM yyyy');
+        const tomorrowRoza = RAMADAN_TIMETABLE.find(d => d.date === tomorrowStr);
+        
+        if (tomorrowRoza) {
+          setCountdownLabel('আগামীকালের সেহরি বাকি');
+          const nextSehri = new Date(`${tomorrowRoza.date} ${tomorrowRoza.sehri}`);
+          const diff = differenceInSeconds(nextSehri, now);
+          updateCountdown(diff);
+        } else {
+          setCountdownLabel('রমজান সমাপ্ত হয়েছে 🌙');
+          setCountdown('০০:০০:০০');
         }
       }
-      
-      const [hours, minutes] = (times as any)['Fajr'].split(':');
-      const tomorrowFajr = new Date();
-      tomorrowFajr.setDate(tomorrowFajr.getDate() + 1);
-      tomorrowFajr.setHours(parseInt(hours), parseInt(minutes), 0);
-      return { name: 'Fajr', time: tomorrowFajr };
-    };
+    }, 1000);
 
-    const interval = setInterval(() => {
-      const next = getNextPrayer(prayerTimes);
-      setNextPrayer(next);
-      const diff = differenceInSeconds(next.time, new Date());
+    const updateCountdown = (diff: number) => {
       const h = Math.floor(diff / 3600);
       const m = Math.floor((diff % 3600) / 60);
       const s = diff % 60;
       setCountdown(`${toBengaliNumber(h.toString().padStart(2, '0'))}:${toBengaliNumber(m.toString().padStart(2, '0'))}:${toBengaliNumber(s.toString().padStart(2, '0'))}`);
-    }, 1000);
+    };
     
     return () => clearInterval(interval);
-  }, [prayerTimes]);
+  }, []);
 
   const [surahDetail, setSurahDetail] = useState<{ ayahs: Ayah[], surah: Surah } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -286,7 +315,6 @@ export default function App() {
   const renderHome = () => {
     const now = new Date();
     const bDate = getBengaliDate(now);
-    const hDate = getHijriDate(now);
 
     return (
       <motion.div 
@@ -299,7 +327,7 @@ export default function App() {
           <div className="flex items-start justify-between mb-8">
             <div className="space-y-1">
               <h2 className="text-3xl font-bold text-white font-bangla">আসসালামু আলাইকুম</h2>
-              <p className="text-emerald-400 font-medium">আজকের রমজান ক্যালেন্ডার</p>
+              <p className="text-emerald-400 font-medium">রাজশাহী বিভাগ, বাংলাদেশ</p>
             </div>
             <div className="flex flex-col items-end space-y-3">
               <button 
@@ -308,49 +336,57 @@ export default function App() {
               >
                 {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
-              <button 
-                onClick={handleLocationDetection}
-                className="flex items-center space-x-1 px-3 py-1.5 rounded-lg glass text-[10px] font-bold text-emerald-400 border-emerald-500/30"
-              >
+              <div className="flex items-center space-x-1 px-3 py-1.5 rounded-lg glass text-[10px] font-bold text-emerald-400 border-emerald-500/30">
                 <MapPin size={12} />
-                <span>{district}</span>
-              </button>
+                <span>রাজশাহী</span>
+              </div>
             </div>
           </div>
 
-          <GlassCard className="p-6 bg-gradient-to-br from-emerald-900/60 to-emerald-800/20 border-emerald-500/20">
-            <div className="grid grid-cols-3 gap-4 mb-6 pb-6 border-b border-white/10">
-              <div className="text-center">
-                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">ইংরেজি</p>
-                <p className="text-sm font-bold">{format(now, 'dd MMM')}</p>
+          <GlassCard className="p-6 bg-gradient-to-br from-emerald-900/60 to-emerald-800/20 border-emerald-500/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Moon size={120} className="text-gold-500" />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mb-6 pb-6 border-b border-white/10 relative z-10">
+              <div className="text-left">
+                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">আজকের তারিখ</p>
+                <p className="text-sm font-bold">{bDate.day} {bDate.month}, {toBengaliNumber(format(now, 'yyyy'))}</p>
               </div>
-              <div className="text-center border-x border-white/10">
-                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">হিজরি</p>
-                <p className="text-sm font-bold">{hDate.day} {hDate.month}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">বাংলা</p>
-                <p className="text-sm font-bold">{bDate.day} {bDate.month}</p>
+              <div className="text-right">
+                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">আজ রোজা</p>
+                <p className="text-sm font-bold text-gold-500">{currentRoza ? toBengaliNumber(currentRoza.roza.toString()) : '---'}</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs text-white/60">
-                  পরবর্তী ওয়াক্ত: <span className="text-gold-500 font-bold">
-                    {nextPrayer?.name === 'Fajr' ? 'ফজর (সেহরি শেষ)' : 
-                     nextPrayer?.name === 'Sunrise' ? 'সূর্যোদয়' : 
-                     nextPrayer?.name === 'Dhuhr' ? 'যোহর' : 
-                     nextPrayer?.name === 'Asr' ? 'আসর' : 
-                     nextPrayer?.name === 'Maghrib' ? 'মাগরিব (ইফতার)' : 
-                     nextPrayer?.name === 'Isha' ? 'এশা' : '...'}
-                  </span>
-                </p>
-                <p className="text-3xl font-black text-white tracking-tighter">{countdown}</p>
+            <div className="flex flex-col items-center justify-center space-y-4 relative z-10">
+              <div className="text-center">
+                <motion.p 
+                  key={countdownLabel}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2"
+                >
+                  {countdownLabel}
+                </motion.p>
+                <motion.p 
+                  className="text-5xl font-black text-white tracking-tighter gold-glow-text animate-pulse-slow"
+                  style={{ textShadow: '0 0 20px rgba(245, 158, 11, 0.3)' }}
+                >
+                  {countdown}
+                </motion.p>
               </div>
-              <div className="w-16 h-16 rounded-full border-4 border-emerald-500/20 flex items-center justify-center relative">
-                <div className="absolute inset-0 border-t-4 border-gold-500 rounded-full animate-spin" />
-                <Timer size={24} className="text-gold-500" />
+              
+              <div className="flex items-center space-x-8 pt-4">
+                <div className="text-center">
+                  <p className="text-[10px] text-white/40 uppercase font-bold mb-1">সেহরি শেষ</p>
+                  <p className="text-sm font-mono font-bold text-gold-500">{currentRoza ? toBengaliNumber(currentRoza.sehri.replace(' AM', '')) : '--:--'}</p>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div className="text-center">
+                  <p className="text-[10px] text-white/40 uppercase font-bold mb-1">ইফতার শুরু</p>
+                  <p className="text-sm font-mono font-bold text-emerald-400">{currentRoza ? toBengaliNumber(currentRoza.iftar.replace(' PM', '')) : '--:--'}</p>
+                </div>
               </div>
             </div>
           </GlassCard>
@@ -947,31 +983,53 @@ export default function App() {
             className="space-y-4 mt-8 overflow-hidden"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold font-bangla">রমজান ক্যালেন্ডার ২০২৬</h3>
+              <h3 className="text-xl font-bold font-bangla">রমজান ক্যালেন্ডার ২০২৬ (রাজশাহী)</h3>
               <button onClick={() => setShowRamadanCalendar(false)} className="text-xs text-white/40">বন্ধ করুন</button>
             </div>
-            <GlassCard className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-white/5 text-[10px] uppercase tracking-wider text-emerald-400">
-                    <th className="p-4">রমজান</th>
-                    <th className="p-4">তারিখ</th>
-                    <th className="p-4">সেহরি</th>
-                    <th className="p-4">ইফতার</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {[...Array(30)].map((_, i) => (
-                    <tr key={i} className="border-t border-white/5 hover:bg-white/5">
-                      <td className="p-4 font-bold">{toBengaliNumber(i + 1)}</td>
-                      <td className="p-4 text-white/60">{toBengaliNumber(i + 1)} মার্চ</td>
-                      <td className="p-4 text-gold-500 font-mono">০৪:৫২</td>
-                      <td className="p-4 text-emerald-400 font-mono">০৬:০৫</td>
+            <GlassCard className="overflow-hidden">
+              <div className="max-h-[400px] overflow-y-auto scroll-smooth custom-scrollbar">
+                <table className="w-full text-left border-collapse">
+                  <thead className="sticky top-0 z-10 bg-emerald-950">
+                    <tr className="bg-white/5 text-[10px] uppercase tracking-wider text-emerald-400">
+                      <th className="p-4">রমজান</th>
+                      <th className="p-4">তারিখ</th>
+                      <th className="p-4">সেহরি</th>
+                      <th className="p-4">ইফতার</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="text-sm">
+                    {RAMADAN_TIMETABLE.map((day, i) => {
+                      const isToday = day.date === format(new Date(), 'dd MMM yyyy');
+                      return (
+                        <tr 
+                          key={i} 
+                          id={isToday ? 'today-row' : undefined}
+                          className={cn(
+                            "border-t border-white/5 transition-colors",
+                            isToday ? "bg-emerald-500/20 border-l-4 border-l-gold-500" : "hover:bg-white/5"
+                          )}
+                        >
+                          <td className="p-4 font-bold">{toBengaliNumber(day.roza.toString())}</td>
+                          <td className="p-4 text-white/60">{toBengaliNumber(day.date.split(' ')[0])} {day.date.split(' ')[1]}</td>
+                          <td className="p-4 text-gold-500 font-mono">{toBengaliNumber(day.sehri.replace(' AM', ''))}</td>
+                          <td className="p-4 text-emerald-400 font-mono">{toBengaliNumber(day.iftar.replace(' PM', ''))}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </GlassCard>
+            <script dangerouslySetInnerHTML={{
+              __html: `
+                setTimeout(() => {
+                  const todayRow = document.getElementById('today-row');
+                  if (todayRow) {
+                    todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }, 500);
+              `
+            }} />
           </motion.div>
         )}
       </AnimatePresence>
