@@ -81,6 +81,67 @@ export default function App() {
   const [isSplash, setIsSplash] = useState(true);
   const [activeTab, setActiveTab] = useState<Screen>('home');
   const [prevTab, setPrevTab] = useState<Screen>('home');
+
+  const navigateToTab = (tab: Screen, subState?: any) => {
+    if (tab === activeTab && !subState) return;
+    setPrevTab(activeTab);
+    setActiveTab(tab);
+    if (tab !== 'duas') setActiveDuaCategory(null);
+    window.history.pushState({ tab, ...subState }, '', `#${tab}${subState?.category ? '-' + subState.category : ''}`);
+  };
+
+  const openDuaCategory = (categoryId: string) => {
+    setActiveDuaCategory(categoryId);
+    window.history.pushState({ tab: 'duas', category: categoryId }, '', `#duas-${categoryId}`);
+  };
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.tab) {
+        setActiveTab(event.state.tab);
+        if (event.state.tab === 'duas') {
+          setActiveDuaCategory(event.state.category || null);
+        } else {
+          setActiveDuaCategory(null);
+        }
+      } else {
+        const hash = window.location.hash.replace('#', '') as string;
+        const validTabs: Screen[] = ['home', 'quran', 'duas', 'tools', 'tracker', 'profile', 'surah-detail', 'tasbeeh', 'allah-names'];
+        
+        if (hash.startsWith('duas-')) {
+          const catId = hash.replace('duas-', '');
+          setActiveTab('duas');
+          setActiveDuaCategory(catId);
+        } else if (validTabs.includes(hash as Screen)) {
+          setActiveTab(hash as Screen);
+          setActiveDuaCategory(null);
+        } else {
+          setActiveTab('home');
+          setActiveDuaCategory(null);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    // Initial state setup
+    const hash = window.location.hash.replace('#', '') as string;
+    const validTabs: Screen[] = ['home', 'quran', 'duas', 'tools', 'tracker', 'profile', 'surah-detail', 'tasbeeh', 'allah-names'];
+    
+    if (hash.startsWith('duas-')) {
+      const catId = hash.replace('duas-', '');
+      setActiveTab('duas');
+      setActiveDuaCategory(catId);
+      window.history.replaceState({ tab: 'duas', category: catId }, '', `#duas-${catId}`);
+    } else if (validTabs.includes(hash as Screen)) {
+      setActiveTab(hash as Screen);
+      window.history.replaceState({ tab: hash }, '', `#${hash}`);
+    } else {
+      window.history.replaceState({ tab: 'home' }, '', '#home');
+    }
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null);
   const [district, setDistrict] = useState<string>(() => localStorage.getItem('district') || 'Dhaka');
   const [loading, setLoading] = useState(true);
@@ -406,6 +467,24 @@ export default function App() {
           </GlassCard>
         </div>
 
+        {/* Quick Links */}
+        <div className="px-6 grid grid-cols-2 gap-4">
+          <GlassCard 
+            className="p-4 flex flex-col items-center space-y-2 bg-white/5 border-white/10"
+            onClick={() => navigateToTab('quran')}
+          >
+            <BookOpen size={24} className="text-emerald-400" />
+            <span className="text-sm font-bold">আল কুরআন</span>
+          </GlassCard>
+          <GlassCard 
+            className="p-4 flex flex-col items-center space-y-2 bg-white/5 border-white/10"
+            onClick={() => navigateToTab('duas')}
+          >
+            <Heart size={24} className="text-gold-500" />
+            <span className="text-sm font-bold">দোয়া ও সুরা</span>
+          </GlassCard>
+        </div>
+
         {/* Prayer Times */}
         <div className="px-6 space-y-4">
           <div className="flex items-center justify-between">
@@ -446,7 +525,7 @@ export default function App() {
     const categories = [
       { id: 'daily', title: 'প্রয়োজনীয় দোয়া', icon: <Heart size={24} />, color: 'emerald', data: DAILY_ESSENTIAL_DUAS },
       { id: 'kalima', title: 'কালিমা সমূহ', icon: <Fingerprint size={24} />, color: 'gold', data: KALIMAS },
-      { id: 'allah', title: 'আল্লাহর নাম', icon: <Star size={24} />, color: 'amber', action: () => setActiveTab('allah-names') },
+      { id: 'allah', title: 'আল্লাহর নাম', icon: <Star size={24} />, color: 'amber', action: () => navigateToTab('allah-names') },
       { id: 'amal', title: 'গুরুত্বপূর্ণ আমল', icon: <ListChecks size={24} />, color: 'emerald', data: IMPORTANT_AMALS },
       { id: 'others', title: 'অন্যান্য', icon: <BookOpen size={24} />, color: 'amber', data: [...ESSENTIAL_DUAS, ...ESSENTIAL_SURAHS] },
     ];
@@ -461,7 +540,7 @@ export default function App() {
         >
           <div className="flex items-center space-x-4">
             <button 
-              onClick={() => setActiveDuaCategory(null)}
+              onClick={() => window.history.back()}
               className="p-2 glass rounded-xl text-white/60"
             >
               <SkipBack size={20} />
@@ -512,7 +591,7 @@ export default function App() {
           {categories.map(cat => (
             <button 
               key={cat.id}
-              onClick={() => cat.action ? cat.action() : setActiveDuaCategory(cat.id)}
+              onClick={() => cat.action ? cat.action() : openDuaCategory(cat.id)}
               className={cn(
                 "w-full flex items-center justify-between p-6 rounded-[2rem] transition-all active:scale-95 group relative overflow-hidden",
                 cat.id === 'allah' 
@@ -634,7 +713,7 @@ export default function App() {
               try {
                 const detail = await fetchSurahDetail(s.number);
                 setSurahDetail(detail);
-                setActiveTab('surah-detail');
+                navigateToTab('surah-detail');
               } catch (err) {
                 console.error('Failed to load surah detail:', err);
                 alert('সূরা লোড করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
@@ -670,7 +749,7 @@ export default function App() {
         className="pb-32"
       >
         <div className="sticky top-0 z-30 glass p-6 flex items-center justify-between">
-          <button onClick={() => setActiveTab('quran')} className="p-2 hover:bg-white/10 rounded-xl">
+          <button onClick={() => window.history.back()} className="p-2 hover:bg-white/10 rounded-xl">
             <SkipBack size={24} />
           </button>
           <div className="text-center">
@@ -753,7 +832,7 @@ export default function App() {
       className="pb-24"
     >
       <div className="sticky top-0 z-30 glass p-6 flex items-center justify-between">
-        <button onClick={() => setActiveTab('tools')} className="p-2 hover:bg-white/10 rounded-xl">
+        <button onClick={() => window.history.back()} className="p-2 hover:bg-white/10 rounded-xl">
           <SkipBack size={24} />
         </button>
         <h3 className="text-xl font-bold">ডেভেলপার প্রোফাইল</h3>
@@ -884,7 +963,7 @@ export default function App() {
         </GlassCard>
         <GlassCard 
           className="p-6 flex flex-col items-center space-y-4 text-center bg-emerald-900/20 border-gold-500/20 col-span-2"
-          onClick={() => setActiveTab('profile')}
+          onClick={() => navigateToTab('profile')}
         >
           <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-400">
             <Info size={32} />
@@ -1133,7 +1212,7 @@ export default function App() {
       className="pb-24"
     >
       <div className="sticky top-0 z-30 glass p-6 flex items-center justify-between">
-        <button onClick={() => setActiveTab('duas')} className="p-2 hover:bg-white/10 rounded-xl">
+        <button onClick={() => window.history.back()} className="p-2 hover:bg-white/10 rounded-xl">
           <SkipBack size={24} />
         </button>
         <h3 className="text-xl font-bold">আল্লাহর ৯৯ নাম</h3>
@@ -1256,23 +1335,23 @@ export default function App() {
         <div className="fixed bottom-0 left-0 w-full p-4 z-50">
           <div className="max-w-lg mx-auto">
             <GlassCard className="flex items-center justify-around py-4 px-2 bg-emerald-950/90 border-emerald-500/20 emerald-glow">
-              <button onClick={() => setActiveTab('home')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'home' ? "text-gold-500 scale-110" : "text-white/40")}>
+              <button onClick={() => navigateToTab('home')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'home' ? "text-gold-500 scale-110" : "text-white/40")}>
                 <Moon size={24} />
                 <span className="text-[10px] font-bold uppercase">হোম</span>
               </button>
-              <button onClick={() => setActiveTab('quran')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'quran' || activeTab === 'surah-detail' ? "text-gold-500 scale-110" : "text-white/40")}>
+              <button onClick={() => navigateToTab('quran')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'quran' || activeTab === 'surah-detail' ? "text-gold-500 scale-110" : "text-white/40")}>
                 <BookOpen size={24} />
                 <span className="text-[10px] font-bold uppercase">কুরআন</span>
               </button>
-              <button onClick={() => setActiveTab('duas')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'duas' ? "text-gold-500 scale-110" : "text-white/40")}>
+              <button onClick={() => navigateToTab('duas')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'duas' ? "text-gold-500 scale-110" : "text-white/40")}>
                 <Heart size={24} />
                 <span className="text-[10px] font-bold uppercase">দোয়া</span>
               </button>
-              <button onClick={() => setActiveTab('tasbeeh')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'tasbeeh' ? "text-gold-500 scale-110" : "text-white/40")}>
+              <button onClick={() => navigateToTab('tasbeeh')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'tasbeeh' ? "text-gold-500 scale-110" : "text-white/40")}>
                 <Fingerprint size={24} />
                 <span className="text-[10px] font-bold uppercase">তাসবিহ</span>
               </button>
-              <button onClick={() => setActiveTab('tools')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'tools' || activeTab === 'profile' ? "text-gold-500 scale-110" : "text-white/40")}>
+              <button onClick={() => navigateToTab('tools')} className={cn("flex flex-col items-center space-y-1 transition-all", activeTab === 'tools' || activeTab === 'profile' ? "text-gold-500 scale-110" : "text-white/40")}>
                 <Calculator size={24} />
                 <span className="text-[10px] font-bold uppercase">টুলস</span>
               </button>
